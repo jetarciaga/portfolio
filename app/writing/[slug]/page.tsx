@@ -10,6 +10,7 @@ import {
   getCollection,
   getEntry,
 } from "@/lib/content";
+import { absoluteUrl, SITE } from "@/lib/site";
 
 type PostPageProps = {
   params: Promise<{ slug: string }>;
@@ -107,6 +108,18 @@ export async function generateMetadata({
   return {
     title: `${post.title} — Jethro Arciaga`,
     description: post.summary,
+    alternates: {
+      canonical: absoluteUrl(`/writing/${post.slug}`),
+    },
+    openGraph: {
+      title: post.title,
+      description: post.summary,
+      url: absoluteUrl(`/writing/${post.slug}`),
+      siteName: SITE.name,
+      type: "article",
+      publishedTime: `${post.date}T00:00:00.000Z`,
+      tags: post.tags,
+    },
   };
 }
 

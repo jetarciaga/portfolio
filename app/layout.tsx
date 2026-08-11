@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
 import SiteFooter from "@/components/SiteFooter";
 import ThemeProvider from "@/components/ThemeProvider";
+import { absoluteUrl, SITE, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,15 +17,18 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ??
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000"),
-  ),
+  metadataBase: SITE_URL,
   title: "Jethro Arciaga — Data & AI/LLM Engineer",
   description:
     "Python and data engineer building scalable pipelines, extraction systems, AWS integrations, and AI-native workflows.",
+  openGraph: {
+    title: "Jethro Arciaga — Data & AI/LLM Engineer",
+    description:
+      "Python and data engineer building scalable pipelines, extraction systems, AWS integrations, and AI-native workflows.",
+    url: absoluteUrl("/"),
+    siteName: SITE.name,
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
