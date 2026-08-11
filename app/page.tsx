@@ -121,6 +121,15 @@ const sortedWritingItems = [...writingItems].sort(
 );
 const featuredWritingItem = sortedWritingItems[0];
 const secondaryWritingItems = sortedWritingItems.slice(1, 3);
+const writingDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function formatWritingDate(date: string) {
+  return writingDateFormatter.format(new Date(`${date}T00:00:00Z`));
+}
 
 function Leaf({ variant }: { variant: (typeof leafVariants)[number] }) {
   return (
@@ -198,8 +207,11 @@ function WritingCard({
       }`}
       href={`/writing/${item.slug}`}
     >
+      <p className="font-mono text-xs leading-body text-muted">
+        {formatWritingDate(item.date)}
+      </p>
       <h3
-        className={`font-semibold leading-heading transition-colors duration-150 ease-out group-hover:text-accent ${
+        className={`mt-3 font-semibold leading-heading transition-colors duration-150 ease-out group-hover:text-accent ${
           featured ? "text-2xl" : "text-lg"
         }`}
       >
