@@ -22,6 +22,68 @@ function revalidatePostPaths(...slugs: string[]) {
   }
 }
 
+export async function autosavePost(id: string | null, formData: FormData) {
+  await requireAdmin();
+
+  if (id !== null && !isPostId(id)) {
+    throw new Error("Invalid post id.");
+  }
+
+  const input = validatePostForm(formData);
+  const supabase = createAdminSupabaseClient();
+
+  if (id === null) {
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({
+        ...input,
+        status: "draft",
+        published_at: null,
+      })
+      .select("id, slug, status, updated_at")
+      .single();
+
+    if (error || !data) {
+      throw new Error(`Creating draft failed: ${error?.message ?? "no row returned"}`);
+    }
+
+    revalidatePostPaths(input.slug);
+
+    return {
+      id: data.id,
+      slug: data.slug,
+      status: data.status,
+      updatedAt: data.updated_at,
+    };
+  }
+
+  const existing = await getAdminPostById(id);
+
+  if (!existing) {
+    throw new Error("Post not found.");
+  }
+
+  const { data, error } = await supabase
+    .from("posts")
+    .update(input)
+    .eq("id", id)
+    .select("id, slug, status, updated_at")
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Saving draft failed: ${error?.message ?? "no row returned"}`);
+  }
+
+  revalidatePostPaths(existing.slug, input.slug);
+
+  return {
+    id: data.id,
+    slug: data.slug,
+    status: data.status,
+    updatedAt: data.updated_at,
+  };
+}
+
 export async function createPost(formData: FormData) {
   await requireAdmin();
   const input = validatePostForm(formData);
