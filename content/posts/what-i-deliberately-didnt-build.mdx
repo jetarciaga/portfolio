@@ -1,0 +1,24 @@
+---
+title: "What I deliberately didn't build"
+date: "2026-08-08"
+summary: "Gall's Law staging, and why semantic search stayed out when it required a second paid vendor for a non-load-bearing feature."
+tags:
+  - architecture
+  - scoping
+  - roadmap
+draft: false
+---
+
+Gall’s Law is a useful antidote to designing the final system before the first useful version exists: a complex system that works evolves from a simple system that works.
+
+That principle shaped the parts I left out.
+
+## No semantic search yet
+
+Semantic search sounds like an obvious addition to a writing and data system. But Claude has no embeddings endpoint, so adding it would have meant introducing a second paid vendor for a feature that was not load-bearing.
+
+That is a poor trade at this stage. The system can start with direct retrieval and a clear set of posts. Search can earn its place later when the need is real and the extra dependency has a job to do.
+
+## Scope is a technical decision
+
+Deliberately not building something is not the same as abandoning it. It is a way to keep the first working system small enough to understand, measure, and replace. The roadmap stays useful when each addition has to justify the new operational and conceptual surface it creates.

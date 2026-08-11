@@ -3,6 +3,7 @@ import Link from "next/link";
 import heroPhoto from "@/public/jet-shanghai.jpg";
 import CursorFog from "@/components/CursorFog";
 import Section from "@/components/Section";
+import { formatContentDate, getCollection } from "@/lib/content";
 import { SITE } from "@/lib/site";
 
 const leafVariants = [
@@ -81,55 +82,9 @@ const workItems = [
   },
 ] as const;
 
-const writingItems = [
-  {
-    title: "Four ways connection pooling broke my data pipeline",
-    slug: "connection-pooling-broke-my-pipeline",
-    date: "2026-08-11",
-    tags: ["postgres", "pgbouncer", "python", "debugging", "infrastructure"],
-    description:
-      "IPv6-only Supabase hosts, server-side prepared statements under PgBouncer, libpq pipeline mode, and an unescaped @ in a generated password.",
-  },
-  {
-    title: "Why Claude Haiku, not a bigger model",
-    slug: "why-claude-haiku-not-a-bigger-model",
-    date: "2026-08-10",
-    tags: ["llm", "claude", "cost-optimization", "ai-engineering"],
-    description: "Choosing the cheapest model that clears the accuracy bar.",
-  },
-  {
-    title: "Direct Postgres over the BaaS SDK",
-    slug: "direct-postgres-over-baas-sdk",
-    date: "2026-08-09",
-    tags: ["postgres", "supabase", "architecture"],
-    description:
-      "Extending the same pooling and schema knowledge into a second runtime.",
-  },
-  {
-    title: "What I deliberately didn't build",
-    slug: "what-i-deliberately-didnt-build",
-    date: "2026-08-08",
-    tags: ["architecture", "scoping", "roadmap"],
-    description:
-      "Gall's Law staging, and why semantic search stayed out when it required a second paid vendor for a non-load-bearing feature.",
-  },
-] as const;
-
-// Temporary preview dates until the content pipeline supplies published dates.
-const sortedWritingItems = [...writingItems].sort(
-  (first, second) => Date.parse(second.date) - Date.parse(first.date),
-);
-const featuredWritingItem = sortedWritingItems[0];
-const secondaryWritingItems = sortedWritingItems.slice(1, 3);
-const writingDateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
-function formatWritingDate(date: string) {
-  return writingDateFormatter.format(new Date(`${date}T00:00:00Z`));
-}
+const writingItems = getCollection("posts");
+const featuredWritingItem = writingItems[0];
+const secondaryWritingItems = writingItems.slice(1, 3);
 
 function Leaf({ variant }: { variant: (typeof leafVariants)[number] }) {
   return (
@@ -208,7 +163,7 @@ function WritingCard({
       href={`/writing/${item.slug}`}
     >
       <p className="font-mono text-xs leading-body text-muted">
-        {formatWritingDate(item.date)}
+        {formatContentDate(item.date)}
       </p>
       <h3
         className={`mt-3 font-semibold leading-heading transition-colors duration-150 ease-out group-hover:text-accent ${
@@ -224,7 +179,7 @@ function WritingCard({
             : "mt-3 truncate text-sm"
         } leading-body text-muted`}
       >
-        {item.description}
+        {item.summary}
       </p>
       <WritingTags tags={item.tags} featured={featured} />
     </Link>

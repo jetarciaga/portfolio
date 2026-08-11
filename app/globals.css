@@ -109,6 +109,11 @@ body {
   line-height: var(--site-leading-body);
 }
 
+.mdx-content pre > code {
+  display: block;
+  min-width: max-content;
+}
+
 .hero {
   --hero-copy-text: var(--palette-light-surface);
   --hero-copy-muted: rgb(250 250 249 / 0.82);

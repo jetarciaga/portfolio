@@ -1,0 +1,68 @@
+---
+title: "Four ways connection pooling broke my data pipeline"
+date: "2026-08-11"
+summary: "IPv6-only Supabase hosts, server-side prepared statements under PgBouncer, libpq pipeline mode, and an unescaped @ in a generated password."
+tags:
+  - postgres
+  - pgbouncer
+  - python
+  - debugging
+  - infrastructure
+draft: false
+---
+
+The failures looked unrelated at first. They all came from the boundary between a Python application, a connection pool, and the database underneath it.
+
+## The host that only answered with IPv6
+
+The first check was DNS, not application code. `dig` showed an AAAA record but no A record for the Supabase host. A runtime without a working IPv6 path could not establish the connection it needed.
+
+```sh
+dig +short db.example.supabase.co A
+dig +short db.example.supabase.co AAAA
+```
+
+That distinction matters because “the database is reachable” is not the same as “this runtime can reach the database over the address family it was given.”
+
+## Prepared statements and transaction pooling
+
+PgBouncer in transaction mode changes the lifetime assumptions a client can make about a server connection. Psycopg can promote repeated queries to server-side prepared statements, but those statements belong to a particular backend connection.
+
+The connection setup that made the boundary explicit was:
+
+```python
+import psycopg
+
+
+def open_connection(connection_string: str) -> psycopg.Connection:
+    return psycopg.connect(connection_string, prepare_threshold=None)
+```
+
+The setting does not make pooling disappear. It keeps a client-side optimization from assuming that a transaction will return to the same backend connection.
+
+## Pipeline mode hiding in `executemany`
+
+The next failure appeared as `SSL SYSCALL error: EOF detected` on a freshly opened connection. The useful clue was that `executemany` could use libpq pipeline mode, which made the failure look like a transport problem instead of a query-shape problem.
+
+The debugging query was deliberately plain SQL:
+
+```sql
+SELECT id, source_url, extracted_text
+FROM extraction_results
+WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+ORDER BY created_at DESC;
+```
+
+Reducing the operation to one explicit query at a time separated the pool behavior from the application’s batch-writing path.
+
+## A password that ended URL connection strings
+
+The final failure was character-level: a generated password contained an unescaped `@`. In a URL-based connection string, that character is structural, so the value no longer meant what the application thought it meant.
+
+This is the kind of bug that makes configuration look correct in a secret manager while the parser receives a different set of credentials.
+
+```python
+connection_string = "postgresql://user:generated_password_with_an_unescaped_at_sign@db.example.supabase.co:5432/postgres?sslmode=require&connect_timeout=10&application_name=pool-debugging"
+```
+
+The lesson across all four failures is the same: a pool is part of the system boundary. DNS, driver defaults, wire-level batching, and URL parsing all become application behavior once the connection string crosses that boundary.
