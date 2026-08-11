@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/authz";
 import {
@@ -11,6 +11,7 @@ import {
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 function revalidatePostPaths(...slugs: string[]) {
+  updateTag("content-published-posts");
   revalidatePath("/");
   revalidatePath("/writing");
   revalidatePath("/sitemap.xml");

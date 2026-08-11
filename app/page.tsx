@@ -7,8 +7,6 @@ import Section from "@/components/Section";
 import { formatContentDate, getCollection } from "@/lib/content";
 import { SITE } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
-
 const leafVariants = [
   "hero-leaf--one",
   "hero-leaf--two",

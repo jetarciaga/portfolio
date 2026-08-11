@@ -3,6 +3,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { unstable_cache } from "next/cache";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 
 export const collections = ["posts", "work"] as const;
@@ -173,6 +174,14 @@ async function readDatabasePosts() {
   return ((data ?? []) as unknown as DatabasePost[]).map(parseDatabasePost);
 }
 
+const readCachedDatabasePosts = unstable_cache(
+  readDatabasePosts,
+  ["content-published-posts"],
+  {
+    tags: ["content-published-posts"],
+  },
+);
+
 function sortEntries(entries: ContentEntry[]) {
   return entries
     .filter((entry) => !entry.draft)
@@ -190,7 +199,7 @@ export async function getCollection(collection: Collection) {
     sortEntries(fileEntries).map((entry) => [entry.slug, entry]),
   );
 
-  for (const entry of await readDatabasePosts()) {
+  for (const entry of await readCachedDatabasePosts()) {
     entriesBySlug.set(entry.slug, entry);
   }
 

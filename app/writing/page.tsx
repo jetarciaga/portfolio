@@ -8,8 +8,6 @@ export const metadata: Metadata = {
     "Notes from building data systems, choosing models, and keeping technical scope deliberate.",
 };
 
-export const dynamic = "force-dynamic";
-
 export default async function WritingIndex() {
   const posts = await getCollection("posts");
 

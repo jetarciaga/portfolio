@@ -16,7 +16,6 @@ type PostPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export const dynamic = "force-dynamic";
 export const dynamicParams = true;
 
 const mdxComponents: MDXComponents = {
