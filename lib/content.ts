@@ -1,6 +1,9 @@
+import "server-only";
+
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 
 export const collections = ["posts", "work"] as const;
 export type Collection = (typeof collections)[number];
@@ -26,7 +29,8 @@ const contentDateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 export function formatContentDate(date: string) {
-  return contentDateFormatter.format(new Date(`${date}T00:00:00Z`));
+  const normalizedDate = date.length === 10 ? `${date}T00:00:00Z` : date;
+  return contentDateFormatter.format(new Date(normalizedDate));
 }
 
 function asString(value: unknown, field: string, filePath: string) {
@@ -70,7 +74,7 @@ function parseFrontmatter(
   };
 }
 
-function readCollection(collection: Collection): ContentEntry[] {
+function readFileCollection(collection: Collection): ContentEntry[] {
   const directory = path.join(process.cwd(), "content", collection);
 
   if (!fs.existsSync(directory)) {
@@ -94,12 +98,105 @@ function readCollection(collection: Collection): ContentEntry[] {
     });
 }
 
-export function getCollection(collection: Collection) {
-  return readCollection(collection)
+type DatabasePost = {
+  body_md: unknown;
+  created_at: unknown;
+  published_at: unknown;
+  slug: unknown;
+  summary: unknown;
+  tags: unknown;
+  title: unknown;
+};
+
+function databaseString(value: unknown, field: string, slug: string) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`Database post ${slug}: ${field} must be a non-empty string`);
+  }
+
+  return value;
+}
+
+function databaseDate(value: unknown, slug: string) {
+  const date = databaseString(value, "date", slug);
+  const parsed = new Date(date);
+
+  if (!Number.isFinite(parsed.getTime())) {
+    throw new Error(`Database post ${slug}: date must be valid`);
+  }
+
+  return parsed.toISOString().slice(0, 10);
+}
+
+function parseDatabasePost(row: DatabasePost): ContentEntry {
+  const slug = databaseString(row.slug, "slug", "unknown");
+  const tags = row.tags;
+
+  if (
+    !Array.isArray(tags) ||
+    !tags.every((tag): tag is string => typeof tag === "string")
+  ) {
+    throw new Error(`Database post ${slug}: tags must be a string array`);
+  }
+
+  return {
+    collection: "posts",
+    slug,
+    title: databaseString(row.title, "title", slug),
+    date: databaseDate(row.published_at ?? row.created_at, slug),
+    summary: databaseString(row.summary, "summary", slug),
+    tags,
+    draft: false,
+    body: typeof row.body_md === "string" ? row.body_md.trim() : "",
+  };
+}
+
+async function readDatabasePosts() {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ) {
+    return [];
+  }
+
+  const supabase = createPublicSupabaseClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .select(
+      "body_md, created_at, published_at, slug, summary, tags, title",
+    )
+    .eq("status", "published");
+
+  if (error) {
+    throw new Error(`Published posts read failed: ${error.message}`);
+  }
+
+  return ((data ?? []) as unknown as DatabasePost[]).map(parseDatabasePost);
+}
+
+function sortEntries(entries: ContentEntry[]) {
+  return entries
     .filter((entry) => !entry.draft)
     .sort((first, second) => Date.parse(second.date) - Date.parse(first.date));
 }
 
-export function getEntry(collection: Collection, slug: string) {
-  return getCollection(collection).find((entry) => entry.slug === slug);
+export async function getCollection(collection: Collection) {
+  const fileEntries = readFileCollection(collection);
+
+  if (collection !== "posts") {
+    return sortEntries(fileEntries);
+  }
+
+  const entriesBySlug = new Map(
+    sortEntries(fileEntries).map((entry) => [entry.slug, entry]),
+  );
+
+  for (const entry of await readDatabasePosts()) {
+    entriesBySlug.set(entry.slug, entry);
+  }
+
+  return sortEntries([...entriesBySlug.values()]);
+}
+
+export async function getEntry(collection: Collection, slug: string) {
+  return (await getCollection(collection)).find((entry) => entry.slug === slug);
 }

@@ -1,10 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ContentEntry } from "@/lib/content";
 import heroPhoto from "@/public/jet-shanghai.jpg";
 import CursorFog from "@/components/CursorFog";
 import Section from "@/components/Section";
 import { formatContentDate, getCollection } from "@/lib/content";
 import { SITE } from "@/lib/site";
+
+export const dynamic = "force-dynamic";
 
 const leafVariants = [
   "hero-leaf--one",
@@ -82,10 +85,6 @@ const workItems = [
   },
 ] as const;
 
-const writingItems = getCollection("posts");
-const featuredWritingItem = writingItems[0];
-const secondaryWritingItems = writingItems.slice(1, 3);
-
 function Leaf({ variant }: { variant: (typeof leafVariants)[number] }) {
   return (
     <span className={`hero-leaf ${variant}`}>
@@ -152,7 +151,7 @@ function WritingCard({
   item,
   featured = false,
 }: {
-  item: (typeof writingItems)[number];
+  item: ContentEntry;
   featured?: boolean;
 }) {
   return (
@@ -218,7 +217,11 @@ function WritingTags({
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const writingItems = await getCollection("posts");
+  const featuredWritingItem = writingItems[0];
+  const secondaryWritingItems = writingItems.slice(1, 3);
+
   return (
     <main id="main-content" className="bg-bg">
       <section

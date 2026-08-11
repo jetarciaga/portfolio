@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 import { getCollection } from "@/lib/content";
 import { absoluteUrl } from "@/lib/site";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const posts = getCollection("posts");
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const posts = await getCollection("posts");
 
   return [
     {

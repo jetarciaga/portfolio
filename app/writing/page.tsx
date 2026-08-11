@@ -8,8 +8,10 @@ export const metadata: Metadata = {
     "Notes from building data systems, choosing models, and keeping technical scope deliberate.",
 };
 
-export default function WritingIndex() {
-  const posts = getCollection("posts");
+export const dynamic = "force-dynamic";
+
+export default async function WritingIndex() {
+  const posts = await getCollection("posts");
 
   return (
     <main id="main-content" className="relative z-10 bg-bg py-20 sm:py-28">

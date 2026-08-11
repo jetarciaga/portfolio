@@ -12,8 +12,8 @@ function escapeXml(value: string) {
     .replaceAll("'", "&apos;");
 }
 
-export function GET() {
-  const posts = getCollection("posts");
+export async function GET() {
+  const posts = await getCollection("posts");
   const feedUrl = absoluteUrl("/feed.xml");
   const items = posts
     .map((post) => {

@@ -16,7 +16,8 @@ type PostPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
 
 const mdxComponents: MDXComponents = {
   h2: ({ children }: { children?: ReactNode }) => (
@@ -91,15 +92,15 @@ const mdxOptions = {
   },
 };
 
-export function generateStaticParams() {
-  return getCollection("posts").map((post) => ({ slug: post.slug }));
+export async function generateStaticParams() {
+  return (await getCollection("posts")).map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getEntry("posts", slug);
+  const post = await getEntry("posts", slug);
 
   if (!post) {
     return {};
@@ -125,7 +126,7 @@ export async function generateMetadata({
 
 export default async function WritingPost({ params }: PostPageProps) {
   const { slug } = await params;
-  const post = getEntry("posts", slug);
+  const post = await getEntry("posts", slug);
 
   if (!post) {
     notFound();
