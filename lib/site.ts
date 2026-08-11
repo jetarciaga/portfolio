@@ -1,7 +1,9 @@
+const configuredVercelUrl =
+  process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
 const configuredSiteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
+  (configuredVercelUrl
+    ? `https://${configuredVercelUrl}`
     : "https://portfolio-woad-chi-55.vercel.app");
 
 export const SITE_URL = new URL(configuredSiteUrl);
