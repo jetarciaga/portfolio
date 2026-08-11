@@ -34,3 +34,19 @@ npm run lint
 npm run build
 npm run start
 ```
+
+## Phase 2 setup
+
+Copy `.env.example` to `.env.local` for local work and fill it with values
+from Supabase and GitHub OAuth. The real values belong in Vercel's dashboard,
+not in the repository. Apply the SQL migration in
+`supabase/migrations/20260812000000_create_posts.sql` to the Supabase project,
+then verify the anonymous RLS boundary with:
+
+```bash
+npm run verify:rls
+```
+
+The app uses Supabase's Transaction Pooler on port `6543` with prepared
+statements disabled. Auth.js accepts only GitHub user ID `71895533`; the
+`middleware.ts` guard and server-side authorization helper protect `/admin`.

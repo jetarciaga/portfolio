@@ -459,6 +459,18 @@ Supporting repos: `penbrothers-automation`, `csv-diff-tool`, `travel-scraper`.
 
 **Do not start until Phase 1 is live and reviewed.** This is the full-stack learning project: write and publish posts from a browser instead of committing files.
 
+## Account-level prerequisites — Jethro must do these himself, before handing Codex a milestone prompt
+
+**Learned the hard way at Milestone 8:** the Milestone 8 prompt was handed to Codex before any of this existed, and Codex correctly refused to fake credentials or skip real verification — it blocked and asked, which was the right call, but the setup should have happened first. Check this section **before** starting each milestone below, not after getting blocked.
+
+- **A Supabase project** — separate from JetSight's, this is a different app with its own database. Needed before Milestone 8: Transaction Pooler connection details (host/port/user/password/database) from Project Settings → Database, plus the Project URL and API keys from **Project Settings → API Keys** (not the "Data API" integrations page — that only shows the API URL and a Data API toggle, not the actual keys, and is easy to land on by mistake).
+  - **Terminology note, confirmed live on the actual dashboard (Aug 2026):** Supabase renamed the classic `anon`/`service_role` JWT keys. The API Keys page now defaults to a **"Publishable and secret API keys"** tab — grab the **Publishable key** (`sb_publishable_...`, client-safe, replaces `anon`) and the **Secret key** (`sb_secret_...`, server-only, replaces `service_role`, hidden by default behind an eye-icon reveal). A **"Legacy anon, service_role API keys"** tab still exists for the old JWT format, but there's no reason to use it for a fresh project. Confirmed compatible with the installed `@supabase/supabase-js@2.112.3` — no code changes needed, this is a naming change only.
+- **A GitHub OAuth App** — GitHub → Settings → Developer settings → OAuth Apps. Needed before Milestone 8: Client ID and Client Secret, with the callback URL set to `<production-url>/api/auth/callback/github`. Note a classic OAuth App only supports one callback URL — a second app is needed for local-dev testing against `localhost:3000`, or test only against the deployed site.
+- **Jethro's GitHub user ID** for the auth allowlist (not username) — `71895533` for `jetarciaga`, already looked up, no need to re-fetch.
+- **A second GitHub account**, for the explicit-denial test in Milestone 8's acceptance criteria.
+- **Image storage credentials** (Supabase Storage or Vercel Blob, whichever gets chosen) — will be needed before Milestone 10's editor work (image upload). Not urgent yet, but flagging now so it doesn't repeat the same blocker.
+- **Env vars set in two places**: `.env.local` locally (gitignored, never committed) and the same values in Vercel's dashboard for production. Codex can wire code to read these; it cannot generate or create the underlying accounts/values.
+
 ## What gets built
 
 **Data.** Supabase Postgres, `posts` table: `id`, `slug` (unique), `title`, `summary`, `body_md`, `tags[]`, `status` (`draft` | `published`), `published_at`, `created_at`, `updated_at`.
