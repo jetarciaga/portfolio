@@ -1,69 +1,477 @@
 import Image from "next/image";
+import Link from "next/link";
+import heroPhoto from "@/public/jet-shanghai.jpg";
+import CursorFog from "@/components/CursorFog";
+import Section from "@/components/Section";
+import { SITE } from "@/lib/site";
+
+const leafVariants = [
+  "hero-leaf--one",
+  "hero-leaf--two",
+  "hero-leaf--three",
+  "hero-leaf--four",
+  "hero-leaf--five",
+  "hero-leaf--six",
+  "hero-leaf--seven",
+] as const;
+
+const sparkleVariants = [
+  "hero-sparkle--one",
+  "hero-sparkle--two",
+  "hero-sparkle--three",
+  "hero-sparkle--four",
+  "hero-sparkle--five",
+  "hero-sparkle--six",
+] as const;
+
+const workItems = [
+  {
+    title: "JetSight",
+    eyebrow: "Flagship project",
+    description:
+      "Architecture, the RLS finding, and roadmap reasoning for the project.",
+    stack: "",
+    href: "https://github.com/jetarciaga/jetsight",
+    linkLabel: "View repository ↗",
+    wide: true,
+  },
+  {
+    title: "AI-native extraction at scale",
+    eyebrow: "GovConnex · Python Developer / Data Engineer · 19 Aug 2025 — early Aug 2026",
+    description:
+      "PDF mining of unstructured text and tabular layouts; Live-Transcript low-latency streaming with concurrent closed-caption capture; Instant-Transcript on-demand URL-driven video extraction; an async email pipeline using Claude for extraction and classification; Promptfoo benchmarking and regression prevention; and MCP servers with Copilot for delivery velocity.",
+    stack:
+      "AWS · Python · TypeScript · Node.js · Scrapy · Pytest · Datadog · CI/CD",
+    href: "https://www.govconnex.com/",
+    linkLabel: "GovConnex ↗",
+    wide: true,
+  },
+  {
+    title: "ETL for OpenArchitects",
+    eyebrow:
+      "Penbrothers · Python Developer / Data Engineer · 4 Dec 2023 — Aug 2025",
+    description:
+      "ETL pipelines for OpenArchitects: secure client-data integration via API and Selenium, transformed to spec and landed in Azure Blob Storage.",
+    stack:
+      "Azure Blob Storage · Selenium · BeautifulSoup · Slack · Postman · Rundeck · Docker · GitHub Actions · CI/CD · Pytest · TDD",
+    href: "https://www.openarchitectsk12.com/",
+    linkLabel: "OpenArchitects ↗",
+    wide: false,
+  },
+  {
+    title: "CreativeJourneysPH",
+    eyebrow: "Full Stack Developer (freelance) · 2025",
+    description: "Built and maintains creativejourneysph.com.",
+    stack:
+      "React · Python/Django · Vercel · Google Cloud · SquareSpace · AWS EC2 · GitHub Actions · Pytest · TDD",
+    href: "https://creativejourneysph.com",
+    linkLabel: "Visit site ↗",
+    wide: false,
+  },
+  {
+    title: "peccbm.ph",
+    eyebrow: "Indra Philippines · Python Developer / Analyst · 2 Aug 2021 — 22 Sep 2023",
+    description:
+      "Backend for the client's award-winning peccbm.ph: AWS Lambda, APIs, Cognito permissions, Neo4j graph database, EventBridge report scheduling, and S3.",
+    stack:
+      "Lambda · API Gateway · Cognito · S3 · EC2 · Boto3 · Serverless · Neo4j · SharePoint · BitBucket",
+    href: "https://peccbm.ph",
+    linkLabel: "Visit site ↗",
+    wide: false,
+  },
+] as const;
+
+const writingItems = [
+  {
+    title: "Four ways connection pooling broke my data pipeline",
+    slug: "connection-pooling-broke-my-pipeline",
+    date: "2026-08-11",
+    tags: ["postgres", "pgbouncer", "python", "debugging", "infrastructure"],
+    description:
+      "IPv6-only Supabase hosts, server-side prepared statements under PgBouncer, libpq pipeline mode, and an unescaped @ in a generated password.",
+  },
+  {
+    title: "Why Claude Haiku, not a bigger model",
+    slug: "why-claude-haiku-not-a-bigger-model",
+    date: "2026-08-10",
+    tags: ["llm", "claude", "cost-optimization", "ai-engineering"],
+    description: "Choosing the cheapest model that clears the accuracy bar.",
+  },
+  {
+    title: "Direct Postgres over the BaaS SDK",
+    slug: "direct-postgres-over-baas-sdk",
+    date: "2026-08-09",
+    tags: ["postgres", "supabase", "architecture"],
+    description:
+      "Extending the same pooling and schema knowledge into a second runtime.",
+  },
+  {
+    title: "What I deliberately didn't build",
+    slug: "what-i-deliberately-didnt-build",
+    date: "2026-08-08",
+    tags: ["architecture", "scoping", "roadmap"],
+    description:
+      "Gall's Law staging, and why semantic search stayed out when it required a second paid vendor for a non-load-bearing feature.",
+  },
+] as const;
+
+// Temporary preview dates until the content pipeline supplies published dates.
+const sortedWritingItems = [...writingItems].sort(
+  (first, second) => Date.parse(second.date) - Date.parse(first.date),
+);
+const featuredWritingItem = sortedWritingItems[0];
+const secondaryWritingItems = sortedWritingItems.slice(1, 3);
+
+function Leaf({ variant }: { variant: (typeof leafVariants)[number] }) {
+  return (
+    <span className={`hero-leaf ${variant}`}>
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.8 3.2C14.2 3.3 7.2 5.3 4.2 9.5c-2.3 3.3-.8 7.2 2.9 7.3 4.8.1 8.8-4.5 10.4-8.3-1.8 3.9-5.2 7.2-8.8 8.8 4.8-.7 8.7-4.1 10.2-8.2.7-1.9 1-3.9 1.9-5.9Z" />
+        <path d="M5.2 18.2c3-3.5 6.2-6.3 10.3-9.2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.2" />
+      </svg>
+    </span>
+  );
+}
+
+function WaterSparkle({
+  variant,
+}: {
+  variant: (typeof sparkleVariants)[number];
+}) {
+  return (
+    <span className={`hero-sparkle ${variant}`}>
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 1.5c.7 5.9 4.6 9.8 10.5 10.5-5.9.7-9.8 4.6-10.5 10.5C11.3 16.6 7.4 12.7 1.5 12 7.4 11.3 11.3 7.4 12 1.5Z" />
+      </svg>
+    </span>
+  );
+}
+
+function WorkEntry({ item }: { item: (typeof workItems)[number] }) {
+  return (
+    <article
+      className={`min-w-0 border-t border-border pt-6 ${item.wide ? "lg:col-span-2" : ""}`}
+    >
+      <div className="min-w-0 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+        <div className="min-w-0">
+          <p className="font-mono text-xs leading-body text-muted">
+            {item.eyebrow}
+          </p>
+          <h3 className="mt-3 text-xl font-semibold leading-heading">
+            {item.title}
+          </h3>
+        </div>
+        {item.href ? (
+          <a
+            className="w-fit shrink-0 font-mono text-sm text-accent underline decoration-transparent underline-offset-4 transition-colors duration-150 ease-out hover:text-accent-hover hover:decoration-current"
+            href={item.href}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {item.linkLabel}
+          </a>
+        ) : null}
+      </div>
+      <p className="mt-5 max-w-prose text-base leading-body text-muted">
+        {item.description}
+      </p>
+      {item.stack ? (
+        <p className="mt-5 max-w-prose font-mono text-xs leading-body text-muted">
+          {item.stack}
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
+function WritingCard({
+  item,
+  featured = false,
+}: {
+  item: (typeof writingItems)[number];
+  featured?: boolean;
+}) {
+  return (
+    <Link
+      className={`group block min-w-0 border-t border-border pt-6 transition-colors duration-150 ease-out ${
+        featured ? "md:col-span-2" : ""
+      }`}
+      href={`/writing/${item.slug}`}
+    >
+      <h3
+        className={`font-semibold leading-heading transition-colors duration-150 ease-out group-hover:text-accent ${
+          featured ? "text-2xl" : "text-lg"
+        }`}
+      >
+        {item.title}
+      </h3>
+      <p
+        className={`${
+          featured
+            ? "mt-4 max-w-prose text-base"
+            : "mt-3 truncate text-sm"
+        } leading-body text-muted`}
+      >
+        {item.description}
+      </p>
+      <WritingTags tags={item.tags} featured={featured} />
+    </Link>
+  );
+}
+
+function WritingTags({
+  tags,
+  featured = false,
+}: {
+  tags: readonly string[];
+  featured?: boolean;
+}) {
+  const visibleTags = tags.slice(0, featured ? 5 : 2);
+  const overflowCount = tags.length - visibleTags.length;
+
+  return (
+    <div className="mt-5 flex flex-wrap items-center gap-2" aria-label="Tags">
+      {featured ? (
+        <span className="rounded-token bg-accent px-2 py-1 font-mono text-xs text-bg">
+          Featured
+        </span>
+      ) : null}
+      {visibleTags.map((tag) => (
+        <span
+          key={tag}
+          className="rounded-token border border-border px-2 py-1 font-mono text-xs text-muted"
+        >
+          {tag}
+        </span>
+      ))}
+      {overflowCount > 0 ? (
+        <span className="font-mono text-xs text-muted">+{overflowCount}</span>
+      ) : null}
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <main id="main-content" className="bg-bg">
+      <section
+        id="home"
+        aria-labelledby="home-heading"
+        className="hero relative isolate min-h-screen overflow-hidden"
+      >
         <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+          className="hero-background"
+          src={heroPhoto}
+          alt="Jethro Arciaga in a park beneath autumn ginkgo trees"
+          fill
+          sizes="100vw"
+          preload
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        <div className="hero-scrim" aria-hidden="true" />
+
+        <div className="hero-motion" aria-hidden="true">
+          <CursorFog />
+          <div className="hero-mist" />
+          <div className="hero-water-sparkles">
+            {sparkleVariants.map((variant) => (
+              <WaterSparkle key={variant} variant={variant} />
+            ))}
+          </div>
+          <div className="hero-leaves">
+            {leafVariants.map((variant) => (
+              <Leaf key={variant} variant={variant} />
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="relative z-20 mx-auto flex min-h-screen w-full max-w-6xl items-end px-4 pb-12 pt-28 sm:px-6 sm:pb-16 sm:pt-32 lg:items-center lg:py-24">
+          <div className="hero-copy-panel">
+            <p className="hero-eyebrow font-mono text-xs uppercase tracking-widest">
+              Python · Data · AI/LLM engineering
+            </p>
+            <h1
+              id="home-heading"
+              className="mt-5 text-3xl font-semibold leading-heading tracking-tight"
+            >
+              {SITE.name}
+            </h1>
+            <p className="hero-positioning mt-6 max-w-prose text-lg leading-body">
+              Python and data engineer building scalable pipelines, automated
+              scraping and extraction systems, and AWS integrations —
+              specialising in AI-native workflows: LLM classification,
+              structured extraction, and systematic prompt evaluation.
+            </p>
+            {SITE.availability ? (
+              <div className="hero-availability mt-8 border-l-2 pl-4">
+                <p className="font-mono text-sm">{SITE.availabilityText}</p>
+                <p className="mt-1 font-mono text-xs">{SITE.location}</p>
+              </div>
+            ) : null}
+            <div className="mt-8 flex flex-wrap gap-4 text-sm font-medium">
+              <a
+                className="rounded-token bg-accent px-5 py-3 text-bg transition-colors duration-150 ease-out hover:bg-accent-hover"
+                href={`mailto:${SITE.email}`}
+              >
+                Email me
+              </a>
+              <a
+                className="hero-secondary-link rounded-token border px-5 py-3 transition-colors duration-150 ease-out"
+                href={SITE.linkedin}
+                target="_blank"
+                rel="noreferrer"
+              >
+                LinkedIn ↗
+              </a>
+            </div>
+            <div className="mt-6 font-mono text-sm">
+              <a
+                className="hero-text-link underline decoration-transparent underline-offset-4 transition-colors duration-150 ease-out"
+                href={SITE.github}
+                target="_blank"
+                rel="noreferrer"
+              >
+                GitHub ↗
+              </a>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      <div className="relative z-10 bg-bg py-20 sm:py-28">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <Section
+            id="about"
+            eyebrow="About"
+            title="Python, data, and AI-native workflows."
+            description={
+              <>
+                <p>
+                  I build scalable pipelines, automated scraping and extraction
+                  systems, and AWS integrations — specialising in AI-native
+                  workflows: LLM classification, structured extraction, and
+                  systematic prompt evaluation.
+                </p>
+                <p className="mt-5">
+                  My experience spans Python development, data engineering,
+                  full-stack delivery, and frontend work across GovConnex,
+                  CreativeJourneysPH, Penbrothers, and Indra Philippines.
+                </p>
+              </>
+            }
+          >
+            <div className="mt-10 grid gap-10 border-t border-border pt-8 md:grid-cols-2">
+              <div>
+                <h3 className="text-xl font-semibold leading-heading">
+                  Credentials
+                </h3>
+                <ul className="mt-5 space-y-3 text-base leading-body text-muted">
+                  <li>Meta Front-End Developer · Aug 2024</li>
+                  <li>Google IT Automation with Python · Dec 2020</li>
+                  <li>Google AI Essentials · Sept 2024</li>
+                  <li>AWS Cloud Practitioner Essentials · Apr 2024</li>
+                  <li>Web Application Technologies and Django · Jan 2021</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold leading-heading">
+                  Education
+                </h3>
+                <ul className="mt-5 space-y-3 text-base leading-body text-muted">
+                  <li>
+                    BS Information Technology · Pamantasan ng Lungsod ng
+                    Muntinlupa
+                  </li>
+                  <li>
+                    College Degree in Multimedia Arts · CIIT College of Arts
+                    and Technology
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            id="work"
+            className="mt-24 border-t border-border pt-16 sm:mt-32 sm:pt-24"
+            eyebrow="Work"
+            title="Systems, products, and the reasoning behind them."
+            description="Extraction, ingestion, full-stack delivery, and backend systems across public products and capability-level work."
+          >
+            <div className="mt-10 grid gap-x-10 gap-y-12 lg:grid-cols-2">
+              {workItems.map((item) => (
+                <WorkEntry key={item.title} item={item} />
+              ))}
+            </div>
+          </Section>
+
+          <Section
+            id="writing"
+            className="mt-24 border-t border-border pt-16 sm:mt-32 sm:pt-24"
+            eyebrow="Writing"
+            title="Notes from building data systems."
+            description="Technical threads on infrastructure failures, model choices, and the boundaries worth keeping."
+          >
+            <div className="mt-10 grid gap-x-10 gap-y-10 md:grid-cols-2">
+              {featuredWritingItem ? (
+                <WritingCard item={featuredWritingItem} featured />
+              ) : null}
+              {secondaryWritingItems.map((item) => (
+                <WritingCard key={item.slug} item={item} />
+              ))}
+              <Link
+                className="w-fit rounded-token border border-border px-4 py-3 font-mono text-sm text-accent transition-colors duration-150 ease-out hover:border-accent-hover hover:text-accent-hover md:col-span-2"
+                href="/writing"
+              >
+                All writing →
+              </Link>
+            </div>
+          </Section>
+
+          <Section
+            id="contact"
+            className="mt-24 border-t border-border pt-16 sm:mt-32 sm:pt-24"
+            eyebrow="Contact"
+            title="A clear route to get in touch."
+            description="For remote or visa-sponsored roles, email or connect on LinkedIn."
+          >
+            <div className="mt-10 grid gap-8 border-t border-border pt-8 md:grid-cols-2 md:gap-10">
+              <div>
+                {SITE.availability ? (
+                  <p className="font-mono text-sm text-accent">
+                    {SITE.availabilityText}
+                  </p>
+                ) : null}
+                <p className="mt-3 text-base text-muted">{SITE.location}</p>
+              </div>
+              <div className="flex flex-wrap content-start gap-x-6 gap-y-4 font-mono text-sm">
+                <a
+                  className="text-accent underline decoration-transparent underline-offset-4 transition-colors duration-150 ease-out hover:text-accent-hover hover:decoration-current"
+                  href={`mailto:${SITE.email}`}
+                >
+                  {SITE.email}
+                </a>
+                <a
+                  className="text-accent underline decoration-transparent underline-offset-4 transition-colors duration-150 ease-out hover:text-accent-hover hover:decoration-current"
+                  href={SITE.linkedin}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  LinkedIn ↗
+                </a>
+                <a
+                  className="text-accent underline decoration-transparent underline-offset-4 transition-colors duration-150 ease-out hover:text-accent-hover hover:decoration-current"
+                  href={SITE.github}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  GitHub ↗
+                </a>
+              </div>
+            </div>
+          </Section>
+        </div>
+      </div>
+    </main>
   );
 }
