@@ -530,7 +530,62 @@ Reuse the JetSight lessons — transaction pooler, and **RLS enabled with explic
 
 **11 — Migrate and cut over.** Move MDX into the DB; DB becomes the source of truth.
 *Accepts:* every Phase 1 post renders identically from the database; **all existing URLs unchanged** — no broken links, no lost SEO.
-🔍 **Checkpoint — full review before cutover.**
+🔍 **Checkpoint — full review before cutover. APPROVED — verified complete (commit `a65875d`), the plan's final milestone.**
+
+Checked directly, not assumed from the report:
+- Queried the `posts` table myself (service-role, bypassing the migration script's own self-check) — all 4 rows present, correct slugs/titles/`published_at` matching the original files exactly.
+- `content/posts/` confirmed empty — the old `.mdx` files are genuinely gone, not just claimed gone.
+- Migration script (`scripts/migrate-posts.mjs`) is idempotent (`upsert` on slug conflict), validates exact expected source slugs before running, and verifies the round-trip write rather than trusting it blindly.
+- `npm run build` re-run clean; static/dynamic split still correct.
+- Live-checked on the actual production domain: `/writing/connection-pooling-broke-my-pipeline` renders identically to the pre-migration version, same URL, database-backed now, console clean.
+- **`NEXT_PUBLIC_SITE_URL` was removed from Vercel entirely, not just edited** — confirmed via `vercel env ls`. This is a legitimate simplification, not a regression: `lib/site.ts`'s fallback now relies on `VERCEL_PROJECT_PRODUCTION_URL`, which Vercel updates automatically whenever the Production domain assignment changes, rather than a manually-maintained variable that could silently drift out of sync on a future domain change. Verified live — `robots.txt` correctly resolves to `www.jarcodes.dev`, the actual current domain.
+
+**Every milestone across both phases (1 through 11) is now built and independently verified.** One minor, non-blocking item remains open — now scoped as Milestone 12 below.
+
+---
+
+**12 — Process images on upload (closes the last open item).**
+
+**Context.** Milestone 10 shipped image upload validating MIME type and file size, but not pixel dimensions — the security checklist's "cap dimensions" line was never implemented. Investigating that gap surfaced a second, larger one sitting right next to it. Three distinct problems, none of them currently live (no published post contains an image yet), all of which bite the first time one is dragged in:
+
+1. **Decode cost.** A 12000×12000 PNG of mostly flat colour compresses to well under the 10MB limit but decodes to roughly 576MB of browser memory. Mobile Safari kills the tab. Because `app/api/admin/upload/route.ts:58` gates uploads to a single GitHub user ID, this is a self-inflicted footgun, not an attack surface — which is why it stayed low priority.
+2. **No optimisation at all — the bigger problem.** `lib/mdx.tsx:49-55` renders post images as a raw `<img>` (note the `eslint-disable @next/next/no-img-element` at the top of that file). Supabase serves the original bytes: no resizing, no format conversion, no responsive `srcset`. A 4MB phone photo is a 4MB download for every reader, mobile data included. Dropping static export was justified partly to gain `next/image`, but only the hero photo was ever wired to it; MDX-embedded images were not.
+3. **No `width`/`height` attributes** → layout shift as images load, working against the ≥95 Lighthouse target in Verification.
+
+**Decision: normalise every upload server-side rather than reject bad input.** Rejecting oversized files would satisfy the checklist line literally while leaving problem 2 completely untouched and pushing manual resizing onto every future post. Processing on upload makes all of it structurally impossible instead — there is no way to get an unoptimised image into a post, because the route will not store one. Problem 3 is deliberately left open; it is minor, and fixing it means touching the upload response, the editor's insertion path, and the MDX renderer for a problem that does not exist yet.
+
+**Scope is one file plus one dependency.** `components/PostEditor.tsx` reads only `result.markdown` from the upload response (line 508-512), so the API's response shape is unchanged and the editor needs no edits at all.
+
+**`app/api/admin/upload/route.ts`:**
+- Keep the existing auth gate, MIME allowlist, and 10MB pre-decode size check exactly as they are — they are the cheap guards that run before any decoding, and they stay first.
+- Read the file into a Buffer, then process with `sharp(buffer, { animated: true, limitInputPixels: 50_000_000 })`. **`limitInputPixels` is the actual dimension cap** the checklist asked for — sharp refuses to decode beyond it, so an absurd input fails fast instead of exhausting the serverless function's memory. sharp's own default (~268MP) is far too permissive to serve as a guard.
+- `.rotate()` with no arguments before resizing — applies EXIF orientation. Without it, photos taken on a phone routinely render sideways, which is the failure that would actually get noticed.
+- `.resize({ width: 2000, height: 2000, fit: "inside", withoutEnlargement: true })`. `fit: "inside"` preserves aspect ratio and only ever shrinks; `withoutEnlargement` stops small images being upscaled into blurry larger ones. **2000px on the longest edge** is sized against the prose column (68ch ≈ 680 CSS px) with headroom for 3x DPI.
+- `.webp({ quality: 82 })` for output. Re-encoding everything to one format means the `extensions` map collapses to a single `.webp` and `contentType` is always `image/webp`. The bucket's existing `allowedMimeTypes` already includes WebP, so no Storage-side change is needed.
+- `{ animated: true }` on input preserves animated GIFs (terminal recordings are the likely case on a blog like this) and converts them to animated WebP, which is typically a large size win. **Watch the animated-resize subtlety:** for multi-frame images sharp reports `metadata.height` as the full frame strip, not one frame — check `metadata.pages > 1` and constrain by width alone in that case, or the height cap will mis-fire.
+- Wrap the sharp pipeline in its own try/catch returning a 400 with a clear message, distinct from the existing generic 500 — a corrupt or over-limit image is the caller's problem, not a server fault.
+- **Side benefit worth knowing:** sharp strips EXIF on output by default, so GPS coordinates embedded in phone photos stop being published to a public site.
+
+**`package.json`:** add `sharp` to `dependencies` explicitly. It already resolves at `node_modules/sharp` as a Next.js transitive dep, which is precisely why it must not be relied on implicitly — a future Next release could drop or restructure it. The route already declares `runtime = "nodejs"`, so nothing else needs configuring, and Vercel installs the correct linux-x64 native binary at build time.
+
+*Accepts:* uploading a deliberately oversized image (e.g. 8000×8000) stores a WebP no larger than 2000px on its longest edge, with the returned Markdown rendering correctly at the right aspect ratio; a portrait photo carrying EXIF orientation renders upright rather than sideways; an animated GIF stays animated after conversion; a small image (e.g. 400px wide) is not upscaled; `npm run lint` and `npm run build` both clean, with the static/dynamic route split unchanged.
+
+**How to verify without needing OAuth.** The end-to-end path requires signing into `/admin` as the allowlisted GitHub account, which only Jethro can do — but the part worth testing hardest doesn't need auth at all. **Extract the sharp pipeline into a small exported function** (same file is fine) and drive it from a throwaway script that reads generated test images off disk and asserts the output's dimensions, format, frame count, and byte size — mirroring how `scripts/verify-rls.mjs` already tests Supabase behaviour as a standalone Node script rather than through the UI. Generate the fixtures with sharp itself (a solid-colour 8000×8000 PNG, a 400px image, an EXIF-rotated portrait, a multi-frame GIF); do not commit them. Report the actual measured before/after dimensions and byte sizes, not a claim that it worked. Confirm the interactive drag-and-drop path separately in the browser afterwards, and check the browser console per Guardrail #9.
+
+**Verified (commit `6a8da0b`) — implementation is correct, test coverage has one hole.** Checked directly:
+- `lib/image-processing.ts` reads exactly as specced: `limitInputPixels: 50_000_000`, `animated: true`, `.rotate()` before `.resize()`, `fit: "inside"` + `withoutEnlargement`, WebP q82. The `metadata.pages > 1` branch correctly drops the height constraint for animated input.
+- `app/api/admin/upload/route.ts` keeps the cheap auth/MIME/size guards ahead of any decoding, returns a distinct 400 for processing failures separate from the generic 500, and always stores `.webp` / `image/webp`.
+- `sharp` is now a real direct dependency (`^0.35.3`), not relied on transitively.
+- **The route split could not have regressed** — `sharp` is reachable only through `lib/image-processing.ts`, which is imported only by the already-dynamic `runtime = "nodejs"` upload route, so no static route can pull it in. Confirmed by grep rather than by re-running the build.
+- Commit is pushed, `origin/main` matches local exactly, and no fixtures or scratch scripts were committed or left untracked.
+
+**The hole: the animated branch was never actually exercised.** The 3-frame GIF fixture was a 320×720 strip — both dimensions already under 2000, so `withoutEnlargement` meant *no resize happened at all*, and the `pages > 1` branch produced output identical to what the normal branch would have. The specific bug that branch exists to prevent — a tall frame strip crushed to fit a 2000px height cap — remains untested. The code is right; the evidence that it's right is missing. **Close this with one more fixture: a tall animated strip (e.g. 30 frames at 640×480 → a 640×14400 strip), asserting frame count and per-frame dimensions both survive.**
+
+**Two caveats worth knowing, neither a defect:**
+- The reported byte sizes come from synthetic solid-colour fixtures (a 2000×1562 WebP at 5,658 bytes is only achievable on near-flat content). They prove the pipeline runs; they say nothing about real-world photo compression.
+- `limitInputPixels` applies to the **whole frame strip** for animated input, so a long screen recording — 640×480 at 200 frames is ~61MP as a strip — is rejected even though every individual frame is small. Acceptable as a guard, but non-obvious enough to be worth knowing before it bites mid-post.
+
+**Still outstanding, and only Jethro can do it:** the authenticated drag-and-drop upload in the real editor against real Supabase Storage. Codex's isolated Chrome session was signed out, so it could only confirm the sign-in page console was clean. This is the check that matters most — it is the only one covering the full path (auth → formData → processing → Storage write → public URL → Markdown insertion → render).
 
 ## Security checklist (Phase 2 — verify each explicitly)
 
@@ -575,14 +630,35 @@ Ask the agent *why* for anything that looks off. "Why is this section 96px from 
 
 ---
 
-## Open items
+## Project status — wrapped (Aug 2026)
 
-**Nothing is blocking execution.** All decisions are settled: CV and photo received; accent amber; Tailwind; Vercel hosting; CMS deferred to Phase 2 with the backend in Next.js; split-pane Markdown editor; availability line included behind a config flag.
+**All 12 milestones are built, pushed, and independently verified.** The site is live at `www.jarcodes.dev`, database-backed, with a working admin CMS. Nothing below is blocking; the project is in a deliberate resting state, not an unfinished one.
 
-**Assumed unless Jethro says otherwise:** contact is `mailto:` plus LinkedIn — no form, since one would need a third-party service and attract spam.
+*(Everything that used to sit here as pre-launch open questions — custom domain, hosting, accent colour, editor shape — is settled and shipped. Kept only what's genuinely still open.)*
 
-**Deferred to the future, no rework needed when they happen:**
-- **Custom domain** — launch on the free `*.vercel.app` URL. Adding a domain later is a DNS change plus a Vercel setting; nothing in the codebase changes. Only caveat: do it before the URL is on many résumés, since moving later costs SEO and breaks shared links.
-- Analytics — prefer a privacy-respecting option if ever added.
+### Picked up later — start here when returning
 
-**Out of scope:** updating the CV PDF itself. The site carries the corrected GovConnex end date.
+**1. Animated-GIF tall-strip test (the one real gap).** `lib/image-processing.ts` has a `metadata.pages > 1` branch that drops the height constraint for animated input, so a tall frame strip isn't crushed to fit the 2000px cap. **The code is correct by inspection, but no test has ever exercised it** — Milestone 12's GIF fixture was 320×720, already under the cap, so it never resized and both branches produced identical output.
+- **To close it:** generate a fixture with a strip taller than 2000px — 30 frames at 640×480 gives a 640×14400 strip — run it through the exported `processImage()`, and assert the frame count and *per-frame* dimensions both survive. Follow the throwaway-script pattern from Milestone 12's verification note (`scripts/verify-rls.mjs` is the house style for standalone Node checks); don't commit fixtures.
+- **Why it's low priority:** it only bites if an animated GIF taller than 2000px as a strip is ever uploaded, and the branch guarding it is six lines that read correctly.
+
+**2. Authenticated drag-and-drop upload test (needs Jethro's OAuth session).** Never run end-to-end. Sign into `/admin`, drag a real image into the editor, confirm it uploads, converts to WebP, and renders in a published post. This is the only check covering the whole path: auth → formData → sharp → Storage write → public URL → Markdown insertion → render. Codex couldn't do it (signed-out browser session); it's a five-minute manual check.
+
+**3. Image layout shift — deliberately deferred, not overlooked.** Post images render as a raw `<img>` (`lib/mdx.tsx:49-55`) with no `width`/`height`, so they cause layout shift as they load, working against the ≥95 Lighthouse target in Verification. Fixing it means threading post-resize dimensions from the upload response through the editor's Markdown insertion into the MDX renderer — real surface area for a problem that doesn't exist yet, since **no published post currently contains an image.** Revisit the first time a post actually uses one.
+
+**4. Optional fifth post** — *"Testing against real messy data"* (fixtures from real fetched data, not synthetic), listed under Launch content and never written. Purely additive.
+
+**5. Analytics** — never added. Prefer a privacy-respecting option if it ever happens.
+
+### Known behaviour, not bugs — worth remembering
+
+- **Long screen-recording GIFs get rejected.** `limitInputPixels: 50_000_000` applies to the *whole frame strip* for animated input, so 640×480 at 200 frames (~61MP as a strip) is refused even though every frame is small. Acceptable as a guard, but surprising if hit mid-post — the fix, if it ever matters, is to compute the limit per-frame rather than per-strip.
+- **Milestone 12's reported byte sizes are meaningless for real photos.** They came from synthetic solid-colour fixtures (a 2000×1562 WebP at 5,658 bytes). They prove the pipeline runs, nothing more.
+- **The RLS admin-write policy is unexercised.** `"allowlisted admin manages posts"` checks a Supabase JWT claim nothing currently sets — real writes go through the service-role client and are gated by Auth.js. Sound design, but that policy branch is defence-in-depth only. Revisit only if something ever writes via a Supabase-authenticated session.
+- **The GitHub OAuth App's callback URL lives outside the repo.** If the domain ever changes, this is the step most likely to be forgotten and it will silently break admin sign-in.
+
+**Out of scope, unchanged:** updating the CV PDF itself. The site carries the corrected GovConnex end date.
+
+### To actually close out
+
+Sync this file to `docs/PLAN.md` and commit it. `docs/PLAN.md` currently carries uncommitted edits (the Milestone 12 spec and its verification note) — the last thing standing between the repo and a clean tree. Commit and push so the deferred list above is version-controlled next to the code it describes, and `git status` is clean when the project is picked back up.
