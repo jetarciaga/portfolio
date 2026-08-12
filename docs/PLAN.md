@@ -587,6 +587,37 @@ Checked directly, not assumed from the report:
 
 **Still outstanding, and only Jethro can do it:** the authenticated drag-and-drop upload in the real editor against real Supabase Storage. Codex's isolated Chrome session was signed out, so it could only confirm the sign-in page console was clean. This is the check that matters most — it is the only one covering the full path (auth → formData → processing → Storage write → public URL → Markdown insertion → render).
 
+---
+
+**13 — Replace the stock favicon with a jar mark.**
+
+**Context.** `app/favicon.ico` was the untouched `create-next-app` default — confirmed by MD5, byte-identical to the initial scaffold commit `3edb1c2` and never modified since. Milestone 4b deleted the other `create-next-app` leftovers (the SVGs in `public/`) but missed this one, so every browser tab had been showing the Next.js triangle rather than anything belonging to this site. Nothing in `app/layout.tsx` references it; Next.js picks it up purely by file convention.
+
+**The mark — Jethro's concept, refined.** A jar with a capital J knocked out of its body, playing on the `jarcodes.dev` domain. The jar carries the distinctive silhouette; the J only has to work as a compact interior knockout rather than carry the whole mark as a standalone monogram. That keeps the mark derived from something real while preserving the silhouette that matters most in a tab bar otherwise full of letters-in-boxes.
+
+**Executed as a solid silhouette with the J knocked out as negative space** — not an outlined jar with a letter drawn inside it. Filled shapes survive downscaling to 16px; hairline strokes blur into each other. Keeping the J entirely inside the body preserves the jar silhouette and avoids the prohibition-sign reading that comes from a mark crossing the outer edge.
+
+**`app/icon.svg` (new).** Verified against `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/01-metadata/app-icons.md`: `icon.svg` is a supported convention, and Next.js adds `sizes="any"` automatically for SVG.
+- `viewBox="0 0 32 32"`, authored so it stays legible when rendered at 16px — that is the size being designed for, not 32.
+- **One `<path>`, single fill, no `stroke` anywhere.** Use `fill-rule="evenodd"` with the J as a second subpath so it becomes a hole punched through the jar. Strokes are the main way small icons turn to mush.
+- Fill `#B45309` (the existing light-mode `accent` token). Include an embedded `<style>` with `@media (prefers-color-scheme: dark) { … fill: #FBBF24 }` — the design system's dark-mode accent, reusing the established token pair rather than inventing a colour. Chrome and Firefox honour this for SVG favicons; Safari ignores it and falls back to the light fill, which is an acceptable degradation.
+- **Shape constraints, all load-bearing at 16px:**
+  - The lid must be clearly **wider than the neck** — that silhouette step is what makes it read as a jar rather than a cup or bottle. Do not skip it to simplify.
+  - The knockout is a **slab J**: a vertical stem, a curved hook turning left at the bottom, and a short top bar extending left from the top of the stem. The top bar is required so the mark does not collapse into a `1` or `]` at 16px.
+  - Stem and hook thickness must be ≥4 units at the 32-unit viewBox (≥2px at 16px). The counter inside the bottom hook must stay ≥2.5 units wide so it remains open after downscaling.
+  - The J must sit roughly centered in the body and entirely inside it, with ≥3 units of clearance from every jar wall. It must never touch or cross the outer edge.
+  - Rounded bottom corners, roughly 3px — soft but not pill-shaped, consistent with the design system's uniform 6px radius feel at this scale.
+
+**`app/favicon.ico` — delete it; add `public/favicon.ico`.** `favicon` and `icon` are *separate* conventions, not fallbacks for one another. Leaving both in the `app/` metadata directory makes Next.js emit a `<link>` for each, and the browser is free to pick the stale triangle. The raster belongs in `public/`, where `/favicon.ico` remains available to crawlers without creating a second metadata link. It must contain the same jar+J mark at 16/32/48px.
+
+**Do not hand-tune coordinates blind.** Exact path geometry is expected to need a round or two against a real render — every visual call in this project has. Build it, look at it at true size, adjust.
+
+*Accepts:* the tab shows an amber jar with a clear J knockout at real 16px size, with the counter open and top bar visible; it is unmistakably a jar and not a cup or a prohibition sign; `/favicon.ico` serves the matching 16/32/48px raster; the generated `<head>` contains exactly **one** icon `<link>`; no trace of the Next.js triangle after a hard reload; `npm run build` clean.
+
+**Verification.** Render `app/icon.svg` into 16×16 and 32×32 canvases, upscale with nearest-neighbour pixelation, and actually inspect the screenshot; do not hand-tune the J from coordinates alone. Build, then inspect the rendered `<head>` to confirm a single icon link and no `/favicon.ico` reference. Load the site in a real browser and check the tab at actual size — not a zoomed-in preview of the SVG, which will flatter it. Check against both a light and a dark OS theme to confirm the `prefers-color-scheme` swap and that the mark holds up against both tab-bar tones. Hard-reload to clear the cached old icon; favicons cache aggressively and a stale triangle after deploy is far more likely to be the cache than a broken build.
+
+**Optional, not required:** `app/apple-icon.png` for iOS home-screen use. Transparent PNGs render on black there, which would actually suit an amber jar — low priority, only worth it if the site ever gets added to a home screen.
+
 ## Security checklist (Phase 2 — verify each explicitly)
 
 - Service-role key server-side only; **never** in a client component or `NEXT_PUBLIC_` var
@@ -632,7 +663,7 @@ Ask the agent *why* for anything that looks off. "Why is this section 96px from 
 
 ## Project status — wrapped (Aug 2026)
 
-**All 12 milestones are built, pushed, and independently verified.** The site is live at `www.jarcodes.dev`, database-backed, with a working admin CMS. Nothing below is blocking; the project is in a deliberate resting state, not an unfinished one.
+**All 13 milestones are built, pushed, and independently verified.** The site is live at `www.jarcodes.dev`, database-backed, with a working admin CMS. Nothing below is blocking; the project is in a deliberate resting state, not an unfinished one.
 
 *(Everything that used to sit here as pre-launch open questions — custom domain, hosting, accent colour, editor shape — is settled and shipped. Kept only what's genuinely still open.)*
 

@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The two hexes below copy the CSS custom properties palette-light-accent and palette-dark-accent (written with two leading hyphens in app/globals.css). Update both files together. -->
   <style>
+    /* These copies correspond to --palette-light-accent and --palette-dark-accent in app/globals.css. */
     .jar-mark { fill: #B45309; }
     @media (prefers-color-scheme: dark) {
       .jar-mark { fill: #FBBF24; }
@@ -7,7 +9,6 @@
   </style>
   <path
     class="jar-mark"
-    fill="#B45309"
     fill-rule="evenodd"
     d="
       M6 4
@@ -32,10 +33,18 @@
       V6
       Q4 4 6 4
       Z
-      M9 20.4
-      L11.4 22.8
-      L23 17.8
-      L20.6 15.4
+      M10 14
+      H22
+      V21
+      C22 23.2 19.8 25 17 25
+      H15
+      C12.2 25 10 23.2 10 21
+      V20
+      H14
+      V21
+      H18
+      V18
+      H10
       Z
     "
   />
