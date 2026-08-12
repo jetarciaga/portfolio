@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .jar-mark { fill: #B45309; }
+    @media (prefers-color-scheme: dark) {
+      .jar-mark { fill: #FBBF24; }
+    }
+  </style>
+  <path
+    class="jar-mark"
+    fill="#B45309"
+    fill-rule="evenodd"
+    d="
+      M6 4
+      H26
+      Q28 4 28 6
+      V7
+      Q28 8 26 8
+      H23
+      V11
+      H24
+      Q26 11 26 13
+      V25
+      Q26 28 23 28
+      H9
+      Q6 28 6 25
+      V13
+      Q6 11 8 11
+      H9
+      V8
+      H6
+      Q4 8 4 7
+      V6
+      Q4 4 6 4
+      Z
+      M9 20.4
+      L11.4 22.8
+      L23 17.8
+      L20.6 15.4
+      Z
+    "
+  />
+</svg>
