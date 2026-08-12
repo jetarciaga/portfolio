@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { ALLOWED_GITHUB_USER_ID } from "@/lib/auth-config";
+import { processImage } from "@/lib/image-processing";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -12,12 +13,6 @@ const allowedTypes = new Set([
   "image/png",
   "image/webp",
 ]);
-const extensions = {
-  "image/gif": ".gif",
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-} as const;
 
 async function ensureBucket() {
   const supabase = createAdminSupabaseClient();
@@ -73,14 +68,32 @@ export async function POST(request: Request) {
     );
   }
 
+  let processedImage: Buffer;
+
+  try {
+    processedImage = await processImage(
+      Buffer.from(await fileValue.arrayBuffer()),
+    );
+  } catch {
+    return Response.json(
+      {
+        error:
+          "Image processing failed. Use a valid image under the 50-megapixel limit.",
+      },
+      { status: 400 },
+    );
+  }
+
   try {
     const supabase = await ensureBucket();
-    const path = `posts/${crypto.randomUUID()}${extensions[fileValue.type as keyof typeof extensions]}`;
-    const { error } = await supabase.storage.from(bucketName).upload(path, fileValue, {
-      cacheControl: "31536000",
-      contentType: fileValue.type,
-      upsert: false,
-    });
+    const path = `posts/${crypto.randomUUID()}.webp`;
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, processedImage, {
+        cacheControl: "31536000",
+        contentType: "image/webp",
+        upsert: false,
+      });
 
     if (error) {
       throw new Error(`Image upload failed: ${error.message}`);
