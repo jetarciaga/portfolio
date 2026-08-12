@@ -4,7 +4,7 @@ The public portfolio and technical writing site for Jethro Arciaga, a Python
 and data engineer working on scalable pipelines, extraction systems, AWS
 integrations, and AI-native workflows.
 
-Live site: [portfolio-woad-chi-55.vercel.app](https://portfolio-woad-chi-55.vercel.app/)
+Live site: [jarcodes.dev](https://jarcodes.dev/)
 
 ## Stack
 
