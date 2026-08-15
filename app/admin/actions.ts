@@ -8,6 +8,7 @@ import {
   isPostId,
   validatePostForm,
 } from "@/lib/admin-posts";
+import { getAdminJobById, isJobId } from "@/lib/jobs";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 function revalidatePostPaths(...slugs: string[]) {
@@ -162,6 +163,34 @@ export async function togglePostStatus(id: string) {
 
   revalidatePostPaths(existing.slug);
   redirect("/admin");
+}
+
+export async function toggleJobStatus(id: string) {
+  await requireAdmin();
+
+  if (!isJobId(id)) {
+    throw new Error("Invalid job id.");
+  }
+
+  const existing = await getAdminJobById(id);
+
+  if (!existing) {
+    throw new Error("Job not found.");
+  }
+
+  const nextStatus = existing.status === "reviewed" ? "new" : "reviewed";
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase
+    .from("jobs")
+    .update({ status: nextStatus })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(`Changing job status failed: ${error.message}`);
+  }
+
+  revalidatePath("/admin/jobs");
+  redirect("/admin/jobs");
 }
 
 export async function deletePost(id: string) {

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { signOut } from "@/auth";
 import { deletePost, togglePostStatus } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/authz";
 import {
@@ -8,18 +7,12 @@ import {
 } from "@/lib/admin-posts";
 import { formatContentDate } from "@/lib/content";
 
-async function signOutOfAdmin() {
-  "use server";
-
-  await signOut({ redirectTo: "/" });
-}
-
 type AdminPageProps = {
   searchParams: Promise<{ status?: string }>;
 };
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
-  const session = await requireAdmin();
+  await requireAdmin();
   const params = await searchParams;
   const statusFilter = parsePostStatusFilter(params.status);
   const posts = await listAdminPosts(statusFilter);
@@ -29,32 +22,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-prose">
-            <p className="font-mono text-xs uppercase tracking-widest text-accent">
-              Admin
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold leading-heading tracking-tight">
+            <h1 className="text-3xl font-semibold leading-heading tracking-tight">
               Writing CMS
             </h1>
             <p className="mt-4 text-base leading-body text-muted">
-              Signed in as {session.user?.name ?? session.user?.email ?? "admin"}.
+              Manage the posts published on jarcodes.dev.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              className="rounded-token bg-accent px-4 py-3 text-sm font-medium text-bg transition-colors duration-150 ease-out hover:bg-accent-hover"
-              href="/admin/new"
-            >
-              New post
-            </Link>
-            <form action={signOutOfAdmin}>
-              <button
-                className="rounded-token border border-border px-4 py-3 text-sm font-medium transition-colors duration-150 ease-out hover:border-accent hover:text-accent"
-                type="submit"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
+          <Link
+            className="w-fit rounded-token bg-accent px-4 py-3 text-sm font-medium text-bg transition-colors duration-150 ease-out hover:bg-accent-hover"
+            href="/admin/new"
+          >
+            New post
+          </Link>
         </header>
 
         <form
