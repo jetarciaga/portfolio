@@ -693,3 +693,23 @@ Ask the agent *why* for anything that looks off. "Why is this section 96px from 
 ### To actually close out
 
 Sync this file to `docs/PLAN.md` and commit it. `docs/PLAN.md` currently carries uncommitted edits (the Milestone 12 spec and its verification note) — the last thing standing between the repo and a clean tree. Commit and push so the deferred list above is version-controlled next to the code it describes, and `git status` is clean when the project is picked back up.
+
+---
+
+## Milestone 14 — Jobs review in `/admin` (job-search-automation Phase 3)
+
+**Context.** A separate repo, `/Users/jethro/Desktop/job-search-automation`, scrapes Indeed and JobStreet into a `jobs` table in the **same Supabase project** this portfolio already uses — 211+ real rows as of this milestone, no AI scoring yet. Phase 2 of that project (AI match scoring, resume tailoring) was explicitly skipped for now — deliberately: this milestone is a plain review list for what's already scraped, and doesn't need scoring to be useful. Full schema and scraper details live in `job-search-automation/docs/PLAN.md`; this repo never owns that schema, it only reads it.
+
+**The one real risk, stated plainly so it isn't rediscovered the hard way:** the `jobs` table's RLS denies `anon` entirely (unlike `posts`, which allows anonymous reads of published posts). This page **must** use `createAdminSupabaseClient()` (`lib/supabase/admin.ts`, service-role) — using the public/anon client (`lib/supabase/public.ts`) will not error, it will silently return zero rows, which looks exactly like "no jobs scraped yet" rather than "wrong client." `requireAdmin()` gates the page itself; the service-role client is what actually reaches the data.
+
+**Scope — read + one status toggle, nothing else:**
+- `lib/jobs.ts` — a typed consumer mirroring `lib/admin-posts.ts`'s defensive row-parsing exactly: a `jobFromRow` validator that throws on an unexpected shape rather than rendering garbage if the schema in the other repo ever drifts. This repo has never owned this schema and shouldn't start pretending to via a loose type.
+- `app/admin/jobs/page.tsx` — lists jobs, newest first, via the service-role client. **Paginate or cap with a real `limit`** — unlike the posts list (small, fully rendered), this table already exceeds what that pattern was designed for and will keep growing every time the other repo's scraper runs.
+- Filters: by `platform` (indeed/jobstreet) and by `status`. Given the volume, a default filter to `status = 'new'` is probably right so the page opens showing what's actually unreviewed, not the full accumulated history — confirm this reads well once real data is on screen, don't just assume it in the abstract.
+- **One action: toggle `status` between `'new'` and `'reviewed'`.** The schema comment on `status` (`job-search-automation`'s migration) already anticipates this: `-- NEW -> REVIEWED -> ... (Phase 3 extends this)`. Keep it to exactly this one transition for now — Phase 2's eventual AI scoring will need to extend the state machine anyway (interested/not-interested, scored, etc.), and guessing that shape now would likely just be wrong later. Mirror `togglePostStatus`'s pattern exactly: the server action computes the next state from the existing row, never trusts a client-supplied status.
+- No create, no edit, no delete — this table isn't authored here, it's authored by the scraper. This page is read + triage only.
+
+**While we're here — the admin dashboard now genuinely has two sections, worth fixing properly rather than duplicating a third header block:**
+- Extract a small shared `app/admin/layout.tsx` carrying the sign-out control and a simple nav between "Writing" and "Jobs" — `app/admin/page.tsx` and the new jobs page currently would otherwise each hand-roll their own header, which was already flagged as a scaling risk back when this was still a one-section dashboard.
+
+*Accepts:* `/admin/jobs` shows real scraped listings (not zero rows — confirms the service-role client point above actually holds in practice, not just in the code); filtering by platform and status works; toggling a job to `reviewed` persists and is reflected in the default `new`-filtered view; the shared admin nav correctly links between Writing and Jobs and highlights the active section; `npm run build`/`npm run lint` clean.
